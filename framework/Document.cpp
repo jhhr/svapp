@@ -1065,6 +1065,21 @@ Document::removeLayerFromView(View *view, Layer *layer)
 }
 
 void
+Document::detachLayerFromView(View *view, Layer *layer)
+{
+    // Like removeLayerFromView but without creating an undo command.
+    // Removes the layer from the view's display list and updates
+    // m_layerViewMap so that deleteLayer(force=true) won't dereference
+    // a stale (soon-to-be-deleted) view pointer.  Use this when the
+    // view is about to be destroyed and you need to keep the layer alive
+    // (e.g. a shared layer like the time ruler that also lives in
+    // another view and must not be deleted).
+    layer->setLayerDormant(view, true);
+    view->removeLayer(layer);
+    removeFromLayerViewMap(layer, view);
+}
+
+void
 Document::addToLayerViewMap(Layer *layer, View *view)
 {
     bool firstView = (m_layerViewMap.find(layer) == m_layerViewMap.end() ||

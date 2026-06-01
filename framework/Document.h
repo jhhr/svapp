@@ -289,6 +289,18 @@ public:
     void removeLayerFromView(View *, Layer *);
 
     /**
+     * Detach the given layer from the given view without creating an undo
+     * command.  Updates the internal layer-view map so that subsequent calls
+     * to deleteLayer(force=true) do not dereference a stale view pointer.
+     * Unlike removeLayerFromView(), this does NOT push a RemoveLayerCommand
+     * onto the undo stack, so the operation cannot be undone.  Use this
+     * when the view is about to be destroyed and you need to keep the layer
+     * alive (e.g. a shared layer like the time ruler that also lives in
+     * another view).
+     */
+    void detachLayerFromView(View *, Layer *);
+
+    /**
      * Return true if alignment is supported (i.e. if the necessary
      * plugin(s) are found).
      */

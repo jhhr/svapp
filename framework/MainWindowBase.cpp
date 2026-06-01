@@ -1475,10 +1475,22 @@ MainWindowBase::open(FileSource source, AudioFileOpenMode mode)
                            m_paneStack->getCurrentPane() != nullptr);
 
     QString extension = source.getExtension().toLower();
-    
+    QString knownAudioExtensions = AudioFileReaderFactory::getKnownExtensions();
+
     bool rdf = (extension == "rdf" || extension == "n3" || extension == "ttl");
-    bool audio =
-        AudioFileReaderFactory::getKnownExtensions().contains(extension);
+    bool audio = knownAudioExtensions.contains(extension);
+
+    SVDEBUG << "MainWindowBase::open: location = \""
+            << source.getLocation() << "\"" << endl;
+    SVDEBUG << "MainWindowBase::open: local filename = \""
+            << source.getLocalFilename() << "\"" << endl;
+    SVDEBUG << "MainWindowBase::open: extension = \""
+            << extension << "\"" << endl;
+    SVDEBUG << "MainWindowBase::open: knownAudioExtensions = \""
+            << knownAudioExtensions << "\"" << endl;
+    SVDEBUG << "MainWindowBase::open: audio=" << audio
+            << " rdf=" << rdf
+            << " canImportLayer=" << canImportLayer << endl;
 
     bool rdfSession = false;
     if (rdf) {
