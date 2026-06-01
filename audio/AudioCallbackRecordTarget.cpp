@@ -28,7 +28,7 @@
 
 namespace sv {
 
-static const int recordUpdateTimeout = 200; // ms
+static const int recordUpdateTimeout = 10; // ms
 
 AudioCallbackRecordTarget::AudioCallbackRecordTarget(ViewManagerBase *manager,
                                                      QString clientName) :
@@ -38,6 +38,7 @@ AudioCallbackRecordTarget::AudioCallbackRecordTarget(ViewManagerBase *manager,
     m_recordSampleRate(44100),
     m_recordChannelCount(2),
     m_frameCount(0),
+    m_systemRecordLatency(0),
     m_model(nullptr),
     m_buffers(nullptr),
     m_bufferCount(0),
@@ -120,8 +121,9 @@ AudioCallbackRecordTarget::setSystemRecordSampleRate(int n)
 }
 
 void
-AudioCallbackRecordTarget::setSystemRecordLatency(int)
+AudioCallbackRecordTarget::setSystemRecordLatency(int latency)
 {
+    m_systemRecordLatency = latency;
 }
 
 void

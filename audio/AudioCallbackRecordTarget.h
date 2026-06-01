@@ -61,6 +61,7 @@ public:
     
     virtual bool isRecording() const override { return m_recording; }
     virtual sv_frame_t getRecordDuration() const override { return m_frameCount; }
+    int getSystemRecordLatency() const { return m_systemRecordLatency; }
 
     /**
      * Return the current input levels in the range 0.0 -> 1.0, for
@@ -94,6 +95,7 @@ private:
     sv_samplerate_t m_recordSampleRate;
     int m_recordChannelCount;
     sv_frame_t m_frameCount;
+    int m_systemRecordLatency;
     QString m_audioFileName;
     WritableWaveFileModel *m_model;
     RingBuffer<float> **m_buffers;
