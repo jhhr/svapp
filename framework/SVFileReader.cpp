@@ -606,9 +606,19 @@ SVFileReader::readModel(const QXmlStreamAttributes &attributes)
 
         model->setObjectName(name);
 
+        // A wave file model normally starts at 0, but it may have
+        // been shifted (e.g. a recording moved earlier to compensate
+        // for latency), and layers derived from it were saved with
+        // frames relative to the shifted position
+        bool startOk = false;
+        sv_frame_t start = attributes.value("start").trimmed().toLongLong(&startOk);
+        if (startOk && start != 0) {
+            model->setStartFrame(start);
+        }
+
         ModelId modelId = ModelById::add(std::shared_ptr<Model>(model));
         m_models[id] = modelId;
-        
+
         if (isMainModel) {
             m_document->setMainModel(modelId);
             m_addedModels.insert(modelId);
