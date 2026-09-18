@@ -101,6 +101,11 @@ public:
     virtual void clearModels();
 
     /**
+     * Return the ids of the models currently being played from.
+     */
+    std::set<ModelId> getModels();
+
+    /**
      * Start making data available in the ring buffers for playback,
      * from the given frame.  If playback is already under way, reseek
      * to the given frame and continue.

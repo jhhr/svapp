@@ -348,9 +348,10 @@ AudioCallbackPlaySource::modelChangedWithin(ModelId, sv_frame_t
 void
 AudioCallbackPlaySource::removeModel(ModelId modelId)
 {
+    // The model may have been released already: its id must still
+    // go, or it stays in m_models for good
     auto model = ModelById::get(modelId);
-    if (!model) return;
-    
+
     Profiler profiler("AudioCallbackPlaySource::removeModel");
 
     m_mutex.lock();
@@ -359,10 +360,15 @@ AudioCallbackPlaySource::removeModel(ModelId modelId)
     SVDEBUG << "AudioCallbackPlaySource::removeModel(" << modelId << ")" << endl;
 #endif
 
-    disconnect(model.get(), SIGNAL(modelChangedWithin(ModelId, sv_frame_t, sv_frame_t)),
-               this, SLOT(modelChangedWithin(ModelId, sv_frame_t, sv_frame_t)));
+    if (model) {
+        disconnect(model.get(), SIGNAL(modelChangedWithin(ModelId, sv_frame_t, sv_frame_t)),
+                   this, SLOT(modelChangedWithin(ModelId, sv_frame_t, sv_frame_t)));
+    }
 
-    m_models.erase(modelId);
+    if (m_models.erase(modelId) == 0) {
+        m_mutex.unlock();
+        return;
+    }
 
     sv_frame_t lastEnd = 0;
     for (ModelId otherId: m_models) {
@@ -389,6 +395,13 @@ AudioCallbackPlaySource::removeModel(ModelId modelId)
     m_mutex.unlock();
 
     clearRingBuffers();
+}
+
+std::set<ModelId>
+AudioCallbackPlaySource::getModels()
+{
+    QMutexLocker locker(&m_mutex);
+    return m_models;
 }
 
 void

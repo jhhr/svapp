@@ -272,6 +272,12 @@ AudioGenerator::removeModel(ModelId modelId)
 {
     QMutexLocker locker(&m_mutex);
 
+    auto si = m_continuousSynthMap.find(modelId);
+    if (si != m_continuousSynthMap.end()) {
+        delete si->second;
+        m_continuousSynthMap.erase(si);
+    }
+
     if (m_clipMixerMap.find(modelId) == m_clipMixerMap.end()) {
         return;
     }
@@ -290,6 +296,12 @@ AudioGenerator::clearModels()
         ClipMixer *mixer = m_clipMixerMap.begin()->second;
         m_clipMixerMap.erase(m_clipMixerMap.begin());
         delete mixer;
+    }
+
+    while (!m_continuousSynthMap.empty()) {
+        ContinuousSynth *synth = m_continuousSynthMap.begin()->second;
+        m_continuousSynthMap.erase(m_continuousSynthMap.begin());
+        delete synth;
     }
 }    
 

@@ -924,6 +924,8 @@ Document::releaseModel(ModelId modelId)
                << "their source fields" << endl;
     }
 
+    emit modelAboutToBeReleased(modelId);
+
     m_models.erase(modelId);
     ModelById::release(modelId);
 }

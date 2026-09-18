@@ -2749,6 +2749,8 @@ MainWindowBase::createDocument()
 
     connect(m_document, SIGNAL(modelAdded(ModelId )),
             this, SLOT(modelAdded(ModelId )));
+    connect(m_document, SIGNAL(modelAboutToBeReleased(ModelId )),
+            this, SLOT(modelAboutToBeReleased(ModelId )));
     connect(m_document, SIGNAL(mainModelChanged(ModelId)),
             this, SLOT(mainModelChanged(ModelId)));
 
@@ -4271,6 +4273,17 @@ MainWindowBase::removeLayerEditDialog(Layer *layer)
         m_layerDataDialogMap.erase(layer);
         delete dialog;
     }
+}
+
+void
+MainWindowBase::modelAboutToBeReleased(ModelId model)
+{
+    // Every model goes into the play source when it is added (see
+    // modelAdded), but it only comes out again through layerInAView,
+    // which is not reached when a layer is deleted with force, when a
+    // layer's model is replaced, or for a model that was never shown
+    // in a view at all.
+    m_playSource->removeModel(model);
 }
 
 void

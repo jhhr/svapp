@@ -353,6 +353,10 @@ signals:
     void layerInAView(Layer *, bool);
 
     void modelAdded(ModelId);
+
+    // Emitted just before the document releases a model that no layer
+    // uses any more. The model still exists at this point
+    void modelAboutToBeReleased(ModelId);
     void mainModelChanged(ModelId); // a WaveFileModel; emitted after modelAdded
 
     void modelGenerationFailed(QString transformName, QString message);
