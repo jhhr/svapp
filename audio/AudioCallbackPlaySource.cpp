@@ -83,6 +83,7 @@ AudioCallbackPlaySource::AudioCallbackPlaySource(ViewManagerBase *manager,
     m_levelsSet(false),
     m_playStartFrame(0),
     m_playStartFramePassed(false),
+    m_playStartCallbackPending(false),
     m_enforceStereo(true),
     m_fillThread(nullptr),
     m_resamplerWrapper(nullptr),
@@ -537,6 +538,7 @@ AudioCallbackPlaySource::play(sv_frame_t startFrame)
     bool changed = !m_playing;
     m_lastRetrievalTimestamp = 0;
     m_lastCurrentFrame = 0;
+    m_playStartCallbackPending = true;
     m_playing = true;
 
 #ifdef DEBUG_AUDIO_PLAY_SOURCE
@@ -1232,6 +1234,10 @@ AudioCallbackPlaySource::getSourceSamples(float *const *buffer,
 #endif
 
     m_condition.wakeAll();
+
+    if (got > 0 && m_playStartCallbackPending.exchange(false)) {
+        if (m_playStartCallback) m_playStartCallback(got);
+    }
 
     return got;
 }

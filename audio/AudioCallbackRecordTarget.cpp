@@ -38,6 +38,7 @@ AudioCallbackRecordTarget::AudioCallbackRecordTarget(ViewManagerBase *manager,
     m_recordSampleRate(44100),
     m_recordChannelCount(2),
     m_frameCount(0),
+    m_framesReceived(0),
     m_systemRecordLatency(0),
     m_model(nullptr),
     m_buffers(nullptr),
@@ -146,6 +147,7 @@ AudioCallbackRecordTarget::putSamples(const float *const *samples, int, int nfra
         for (int c = 0; c < m_recordChannelCount; ++c) {
             m_buffers[c]->write(samples[c], nframes);
         }
+        m_framesReceived += nframes;
     }
 }
 
@@ -254,6 +256,7 @@ AudioCallbackRecordTarget::startRecording()
 
     m_model = nullptr;
     m_frameCount = 0;
+    m_framesReceived = 0;
 
     QString folder = RecordDirectory::getRecordDirectory();
     if (folder == "") return nullptr;

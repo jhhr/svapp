@@ -35,6 +35,8 @@
 
 #include <set>
 #include <map>
+#include <atomic>
+#include <functional>
 
 namespace breakfastquay {
     class ResamplerWrapper;
@@ -104,6 +106,17 @@ public:
      * to the given frame and continue.
      */
     virtual void play(sv_frame_t startFrame) override;
+
+    /**
+     * Set a function to be called when the first block of audio
+     * following a play() call is handed to the device. Its argument
+     * is the number of frames in that block. It is called from the
+     * audio callback, so it must be realtime-safe, and it must be set
+     * before playback starts.
+     */
+    void setPlayStartCallback(std::function<void(int)> callback) {
+        m_playStartCallback = callback;
+    }
 
     /**
      * Stop playback and ensure that no more data is returned.
@@ -394,6 +407,8 @@ protected:
     Scavenger<RealTimePluginInstance> m_pluginScavenger;
     sv_frame_t                        m_playStartFrame;
     bool                              m_playStartFramePassed;
+    std::function<void(int)>          m_playStartCallback;
+    std::atomic<bool>                 m_playStartCallbackPending;
     RealTime                          m_playStartedAt;
     bool                              m_enforceStereo;
 

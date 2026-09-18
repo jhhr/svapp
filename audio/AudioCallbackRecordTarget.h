@@ -64,6 +64,15 @@ public:
     int getSystemRecordLatency() const { return m_systemRecordLatency; }
 
     /**
+     * Return the number of frames the device has delivered to the
+     * current recording so far. Unlike getRecordDuration(), this
+     * includes frames that are still waiting to be written to the
+     * model. May be called from any thread, including the audio
+     * callback.
+     */
+    sv_frame_t getFramesReceived() const { return m_framesReceived; }
+
+    /**
      * Return the current input levels in the range 0.0 -> 1.0, for
      * metering purposes. The values returned are the peak values
      * since the last time this function was called (after which they
@@ -95,6 +104,7 @@ private:
     sv_samplerate_t m_recordSampleRate;
     int m_recordChannelCount;
     sv_frame_t m_frameCount;
+    std::atomic<sv_frame_t> m_framesReceived;
     int m_systemRecordLatency;
     QString m_audioFileName;
     WritableWaveFileModel *m_model;
