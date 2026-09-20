@@ -1478,14 +1478,35 @@ Document::toXml(QTextStream &out, QString indent, QString extraAttributes,
 
     std::set<ModelId> used;
 
+    // A layer that is not to be saved (Layer::setSavedInSession) is
+    // not written, and nor is a model that only such layers show --
+    // even if it is the source model of a model that is written, which
+    // is then written as if it had been made by hand rather than
+    // derived, since its derivation would refer to nothing
+    std::set<ModelId> shownBySaved, shownByUnsaved;
+
     for (LayerViewMap::const_iterator i = m_layerViewMap.begin();
          i != m_layerViewMap.end(); ++i) {
 
         if (i->first && !i->second.empty()) { // Layer exists, is in views
             ModelId modelId = i->first->getModel();
+            if (!i->first->isSavedInSession()) {
+                if (!modelId.isNone()) shownByUnsaved.insert(modelId);
+                continue;
+            }
             ModelId sourceId = i->first->getSourceModel();
-            if (!modelId.isNone()) used.insert(modelId);
+            if (!modelId.isNone()) {
+                used.insert(modelId);
+                shownBySaved.insert(modelId);
+            }
             if (!sourceId.isNone()) used.insert(sourceId);
+        }
+    }
+
+    for (ModelId modelId : shownByUnsaved) {
+        if (modelId != m_mainModel &&
+            shownBySaved.find(modelId) == shownBySaved.end()) {
+            used.erase(modelId);
         }
     }
 
@@ -1569,7 +1590,9 @@ Document::toXml(QTextStream &out, QString indent, QString extraAttributes,
             bool haveDerivation = false;
         
             if (!rec.second.source.isNone() &&
-                rec.second.transform.getIdentifier() != "") {
+                rec.second.transform.getIdentifier() != "" &&
+                (rec.second.source == m_mainModel ||
+                 used.find(rec.second.source) != used.end())) {
                 haveDerivation = true;
             }
 
@@ -1632,6 +1655,7 @@ Document::toXml(QTextStream &out, QString indent, QString extraAttributes,
     }
 
     for (auto i = m_layers.begin(); i != m_layers.end(); ++i) {
+        if (!(*i)->isSavedInSession()) continue;
         (*i)->toXml(out, indent + "  ");
     }
 
