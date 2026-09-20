@@ -3512,7 +3512,11 @@ MainWindowBase::record()
                             delete conn;
                             m_document->refreshModel(modelId);
                         });
-        
+
+    } else if (m_audioRecordMode == RecordCreateUnshownModel) {
+
+        m_document->addNonDerivedModel(modelId);
+
     } else {
 
         CommandHistory::getInstance()->startCompoundOperation

@@ -148,7 +148,13 @@ public:
 
     enum AudioRecordMode {
         RecordReplaceSession,
-        RecordCreateAdditionalModel
+        RecordCreateAdditionalModel,
+
+        // As RecordCreateAdditionalModel, but the recording is only
+        // added to the document as a model: no pane, no layer and no
+        // undo command are made for it.  For an application that shows
+        // the recording its own way, or not at all
+        RecordCreateUnshownModel
     };
     
     virtual FileOpenStatus open(FileSource source, AudioFileOpenMode = AskUser);
