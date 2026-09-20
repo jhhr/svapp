@@ -1082,6 +1082,31 @@ Document::detachLayerFromView(View *view, Layer *layer)
 }
 
 void
+Document::attachLayerToView(View *view, Layer *layer)
+{
+    // What AddLayerCommand::execute() does, with no command made
+    ModelId modelId = layer->getModel();
+    if (!modelId.isNone() && modelId != m_mainModel &&
+        m_models.find(modelId) == m_models.end()) {
+        SVCERR << "ERROR: Document::attachLayerToView: Layer " << layer
+               << " has unregistered model " << modelId
+               << " -- register the layer's model before adding the layer!" << endl;
+        return;
+    }
+
+    for (int i = 0; i < view->getLayerCount(); ++i) {
+        if (view->getLayer(i) == layer) {
+            layer->setLayerDormant(view, false);
+            return;
+        }
+    }
+
+    view->addLayer(layer);
+    layer->setLayerDormant(view, false);
+    addToLayerViewMap(layer, view);
+}
+
+void
 Document::addToLayerViewMap(Layer *layer, View *view)
 {
     bool firstView = (m_layerViewMap.find(layer) == m_layerViewMap.end() ||

@@ -301,6 +301,17 @@ public:
     void detachLayerFromView(View *, Layer *);
 
     /**
+     * Add the given layer to the given view without creating an undo
+     * command: the counterpart of detachLayerFromView().  The layer is
+     * registered in the layer-view map as addLayerToView() would have
+     * it, so its model is written to the session file, but nothing goes
+     * onto the undo stack and the document is not marked as modified.
+     * For a layer that is furniture of the application rather than
+     * something the user added, and which undo must not take away.
+     */
+    void attachLayerToView(View *, Layer *);
+
+    /**
      * Return true if alignment is supported (i.e. if the necessary
      * plugin(s) are found).
      */
