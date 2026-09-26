@@ -579,6 +579,15 @@ protected:
     
     virtual void createAudioIO();
     virtual void deleteAudioIO();
+
+    /**
+     * Whether stop() suspends the audio device. It does by default,
+     * so that an idle application costs nothing. A subclass may keep
+     * it running instead: every restart of a stream can move its
+     * input against its output, which a recording that has to line
+     * up with playback cannot allow for take by take.
+     */
+    virtual bool suspendAudioOnStop() const { return true; }
     
     virtual void openHelpUrl(QString url);
     virtual void openLocalFolder(QString path);

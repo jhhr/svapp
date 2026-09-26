@@ -3810,10 +3810,11 @@ MainWindowBase::stop()
     
     m_playSource->stop();
 
-    SVDEBUG << "MainWindowBase::stop: suspending" << endl;
-    
-    if (m_audioIO) m_audioIO->suspend();
-    else if (m_playTarget) m_playTarget->suspend();
+    if (suspendAudioOnStop()) {
+        SVDEBUG << "MainWindowBase::stop: suspending" << endl;
+        if (m_audioIO) m_audioIO->suspend();
+        else if (m_playTarget) m_playTarget->suspend();
+    }
     
     if (m_paneStack && m_paneStack->getCurrentPane()) {
         updateVisibleRangeDisplay(m_paneStack->getCurrentPane());
