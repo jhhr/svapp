@@ -107,7 +107,11 @@ AudioCallbackRecordTarget::getApplicationSampleRate() const
 int
 AudioCallbackRecordTarget::getApplicationChannelCount() const
 {
-    return m_recordChannelCount;
+    // The channels asked of each device opened: two, as at the first.
+    // Not the count the device opened last gave (m_recordChannelCount),
+    // which after a device with one input would have every device after
+    // it opened with one too, its second input dropped or mixed in
+    return 2;
 }
 
 void
