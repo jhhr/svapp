@@ -161,6 +161,11 @@ public:
      * subsequent call to the provided handler (which must be
      * non-null). The handle returned will be passed through to the
      * handler callback.
+     *
+     * If the document is deleted before the transforms finish, the
+     * handler is not called at all: the layers it would have been
+     * given were the document's, and were deleted with it. The handle
+     * is then not to be used again either.
      */
     LayerCreationAsyncHandle createDerivedLayersAsync(const Transforms &,
                                                       const ModelTransformer::Input &,
@@ -446,6 +451,15 @@ protected:
 
     std::set<ModelId> m_aggregateModels;
     std::set<ModelId> m_alignmentModels;
+
+    /**
+     * The asynchronous layer creations whose transforms have not yet
+     * reported back. Each leaves the set when it reports; those still
+     * in it when the document is deleted are told it has gone
+     * (orphanConverters()).
+     */
+    std::set<AdditionalModelConverter *> m_converters;
+    void orphanConverters();
     
     /**
      * Add an extra derived model (returned at the end of processing a

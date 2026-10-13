@@ -76,6 +76,12 @@ Document::~Document()
     SVCERR << "\n\nDocument::~Document: about to clear command history" << endl;
 #endif
     CommandHistory::getInstance()->clear();
+
+    // Layer creations still running are told the document is going,
+    // before the layers they were to fill are deleted below: their
+    // transforms report back later, from the event loop, with nothing
+    // of this document left to report to
+    orphanConverters();
     
 #ifdef DEBUG_DOCUMENT
     SVCERR << "Document::~Document: about to delete layers" << endl;
@@ -314,6 +320,15 @@ public:
     void
     moreModelsAvailable(vector<ModelId> models) override {
         SVDEBUG << "AdditionalModelConverter::moreModelsAvailable: " << models.size() << " model(s)" << endl;
+        if (!m_doc) {
+            // The document has gone, and its layers with it: these
+            // models have no document to own them, and the handler
+            // has nothing it was asked for
+            for (ModelId modelId : models) ModelById::release(modelId);
+            delete this;
+            return;
+        }
+        m_doc->m_converters.erase(this);
         // We can't automatically regenerate the additional models on
         // reload - so they go in m_additionalModels instead of m_models
         QStringList names;
@@ -330,21 +345,48 @@ public:
     void
     noMoreModelsAvailable() override {
         SVDEBUG << "AdditionalModelConverter::noMoreModelsAvailable" << endl;
+        if (!m_doc) {
+            delete this;
+            return;
+        }
+        m_doc->m_converters.erase(this);
         m_handler->layersCreated(this, m_primary, vector<Layer *>());
         delete this;
     }
 
     void cancel() {
+        if (!m_doc) return;
         for (Layer *layer : m_primary) {
             m_doc->setModel(layer, {});
         }
     }
 
+    /**
+     * The document is being deleted, and with it the primary layers:
+     * when the transforms report back, there is no document to give
+     * their models to, nor anything for the handler. A handler that is
+     * itself deleted with the document is never called either
+     */
+    void documentDeleted() {
+        m_doc = nullptr;
+        m_primary.clear();
+        m_handler = nullptr;
+    }
+
 private:
     Document *m_doc;
     vector<Layer *> m_primary;
-    Document::LayerCreationHandler *m_handler; //!!! how to handle destruction of this?
+    Document::LayerCreationHandler *m_handler;
 };
+
+void
+Document::orphanConverters()
+{
+    for (AdditionalModelConverter *amc : m_converters) {
+        amc->documentDeleted();
+    }
+    m_converters.clear();
+}
 
 Document::LayerCreationAsyncHandle
 Document::createDerivedLayersAsync(const Transforms &transforms,
@@ -356,6 +398,7 @@ Document::createDerivedLayersAsync(const Transforms &transforms,
     QString message;
 
     AdditionalModelConverter *amc = new AdditionalModelConverter(this, handler);
+    m_converters.insert(amc);
     
     vector<ModelId> newModels = addDerivedModels
         (transforms, input, message, amc);
