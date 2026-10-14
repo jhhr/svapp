@@ -912,8 +912,6 @@ MainWindowBase::currentPaneChanged(Pane *p)
 
     sv_frame_t frame = m_playSource->getCurrentBufferedFrame();
 
-    SVCERR << "currentPaneChanged: current frame (in ref model) = " << frame << endl;
-
     View::ModelSet soloModels = p->getModels();
     
     View::ModelSet sources;
@@ -3075,7 +3073,7 @@ MainWindowBase::toXml(QTextStream &out, bool asTemplate)
 Pane *
 MainWindowBase::addPaneToStack()
 {
-    SVCERR << "MainWindowBase::addPaneToStack()" << endl;
+//    SVCERR << "MainWindowBase::addPaneToStack()" << endl;
     AddPaneCommand *command = new AddPaneCommand(this);
     CommandHistory::getInstance()->addCommand(command);
     Pane *pane = command->getPane();
@@ -3391,7 +3389,7 @@ MainWindowBase::record()
         SVDEBUG << "MainWindowBase::record: about to create audio IO" << endl;
         createAudioIO();
     }
-
+    
     if (!m_audioIO) {
         if (!m_playTarget) {
             // Don't need to report this, createAudioIO should have
@@ -3428,6 +3426,7 @@ MainWindowBase::record()
     if (m_viewManager) m_viewManager->setGlobalCentreFrame(0);
     
     SVCERR << "MainWindowBase::record: about to resume" << endl;
+    m_audioIO->suppressRecordSide(false);
     m_audioIO->resume();
 
     WritableWaveFileModel *modelPtr = m_recordTarget->startRecording();
@@ -3444,6 +3443,7 @@ MainWindowBase::record()
         SVCERR << "MainWindowBase::record: Model not OK, stopping and suspending" << endl;
         m_recordTarget->stopRecording();
         m_audioIO->suspend();
+        m_audioIO->suppressRecordSide(true);
         if (action) action->setChecked(false);
         delete modelPtr;
         return;
@@ -3468,6 +3468,7 @@ MainWindowBase::record()
                 SVCERR << "MainWindowBase::record: Session template open cancelled, stopping and suspending" << endl;
                 m_recordTarget->stopRecording();
                 m_audioIO->suspend();
+                m_audioIO->suppressRecordSide(true);
                 ModelById::release(modelId);
                 return;
             }
@@ -3812,8 +3813,16 @@ MainWindowBase::stop()
 
     if (suspendAudioOnStop()) {
         SVDEBUG << "MainWindowBase::stop: suspending" << endl;
-        if (m_audioIO) m_audioIO->suspend();
-        else if (m_playTarget) m_playTarget->suspend();
+        if (m_audioIO) {
+            m_audioIO->suspend();
+            // The input stays closed until the next record(). Only
+            // with the device suspended: suppressing the record side
+            // opens the stream again, which a subclass that keeps the
+            // device running between takes is avoiding
+            m_audioIO->suppressRecordSide(true);
+        } else if (m_playTarget) {
+            m_playTarget->suspend();
+        }
     }
     
     if (m_paneStack && m_paneStack->getCurrentPane()) {
@@ -3824,8 +3833,10 @@ MainWindowBase::stop()
     }
 }
 
-MainWindowBase::AddPaneCommand::AddPaneCommand(MainWindowBase *mw) :
+MainWindowBase::AddPaneCommand::AddPaneCommand(MainWindowBase *mw,
+                                               int atIndex) :
     m_mw(mw),
+    m_atIndex(atIndex),
     m_pane(nullptr),
     m_prevCurrentPane(nullptr),
     m_added(false)
@@ -3850,7 +3861,7 @@ MainWindowBase::AddPaneCommand::execute()
 {
     if (!m_pane) {
         m_prevCurrentPane = m_mw->m_paneStack->getCurrentPane();
-        m_pane = m_mw->m_paneStack->addPane();
+        m_pane = m_mw->m_paneStack->addPane(m_atIndex);
 
         connect(m_pane, SIGNAL(contextHelpChanged(const QString &)),
                 m_mw, SLOT(contextHelpChanged(const QString &)));
@@ -4260,6 +4271,24 @@ MainWindowBase::layerInAView(Layer *layer, bool inAView)
         }
     }
 
+    // Check whether we need to add to the solo model set
+    if (inAView && m_viewManager->getPlaySoloMode()) {
+        Pane *currentPane = m_paneStack->getCurrentPane();
+        bool found = false;
+        if (currentPane) {
+            for (int j = 0; j < currentPane->getLayerCount(); ++j) {
+                Layer *pl = currentPane->getLayer(j);
+                if (pl == layer) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                currentPaneChanged(currentPane);
+            }
+        }
+    }
+    
     updateMenuStates();
 }
 
@@ -4295,7 +4324,8 @@ void
 MainWindowBase::modelAdded(ModelId model)
 {
 //    SVDEBUG << "MainWindowBase::modelAdded(" << model << ")" << endl;
-    std::cerr << "\nAdding model " << model << " to playsource " << std::endl;
+//    auto m = ModelById::get(model);
+//    std::cerr << "\nAdding model " << model << " (" << (m ?  m->getTypeName() : "<unknown>") << ") to playsource " << std::endl;
     m_playSource->addModel(model);
 }
 
@@ -4351,6 +4381,7 @@ void
 MainWindowBase::alignmentComplete(ModelId alignmentModelId)
 {
     SVCERR << "MainWindowBase::alignmentComplete(" << alignmentModelId << ")" << endl;
+    updateMenuStates();
 }
 
 void

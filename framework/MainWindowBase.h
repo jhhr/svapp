@@ -533,7 +533,7 @@ protected:
     class AddPaneCommand : public Command
     {
     public:
-        AddPaneCommand(MainWindowBase *mw);
+        AddPaneCommand(MainWindowBase *mw, int atIndex = -1);
         virtual ~AddPaneCommand();
         
         void execute() override;
@@ -544,6 +544,7 @@ protected:
 
     protected:
         MainWindowBase *m_mw;
+        int m_atIndex;
         Pane *m_pane; // Main window owns this, but I determine its lifespan
         Pane *m_prevCurrentPane; // I don't own this
         bool m_added;
